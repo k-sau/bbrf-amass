@@ -9,14 +9,20 @@ import (
 )
 
 func main() {
-	filePath := flag.String("path", "", "Full path to amass json output")
-	program := flag.String("p", "", "Program id")
+	filePath := flag.String("path", "", "Full path to amass json output. Required.")
+	program := flag.String("p", "", "Program id. Required.")
+	help := flag.Bool("h", false, "Prints available flags")
 	bbrfClient := flag.String("bbrf", "/home/op/.local/bin/bbrf", "Path to bbrf. Default: /home/op/.local/bin/bbrf")
 
 	flag.Parse()
 
+	if *help {
+		flag.Usage()
+		os.Exit(0)
+	}
+
 	if *program == "" || *filePath == "" {
-		fmt.Println("Flag path and p is required")
+		fmt.Println("path and p is required")
 		flag.Usage()
 		os.Exit(1)
 	}
