@@ -12,13 +12,12 @@ func main() {
 	filePath := flag.String("path", "", "Full path to amass json output. Required.")
 	program := flag.String("p", "", "Program id. Required.")
 	help := flag.Bool("h", false, "Prints available flags")
-	bbrfClient := flag.String("bbrf", "/home/op/.local/bin/bbrf", "Path to bbrf. Default: /home/op/.local/bin/bbrf")
-
+	bbrfConfigFile := flag.String("bc", "~/.bbrf/config.json", "File path for bbrf config file. Default: ~/.bbrf/config.json")
 	flag.Parse()
 
 	if *help {
 		flag.Usage()
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	if *program == "" || *filePath == "" {
@@ -26,5 +25,5 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	core.Initialize(*filePath, *program, *bbrfClient)
+	core.Initialize(*filePath, *program, *bbrfConfigFile)
 }
