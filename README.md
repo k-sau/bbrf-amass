@@ -10,6 +10,8 @@ GO111MODULE=on go get github.com/k-sau/bbrf-amass
 ### Usage
 
 ```
+  -bc string
+    	File path for bbrf config file. Default: ~/.bbrf/config.json (default "~/.bbrf/config.json")
   -h	Prints available flags
   -p string
     	Program id. Required.

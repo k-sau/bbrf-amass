@@ -18,6 +18,11 @@ func Initialize(filepath, program, bbrfConfigFile string) {
 }
 
 func parseConfigFile(bbrfConfigFile string) {
+	if bbrfConfigFile == "~/.bbrf/config.json" {
+		home, err := os.UserHomeDir()
+		handleError(err)
+		bbrfConfigFile = home + "/.bbrf/config.json"
+	}
 	f, err := os.Open(bbrfConfigFile)
 	handleError(err)
 	defer f.Close()
