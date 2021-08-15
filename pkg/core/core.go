@@ -14,9 +14,58 @@ import (
 
 func Initialize(filepath, program, bbrfConfigFile string) {
 	parseConfigFile(bbrfConfigFile)
-	handleJSONOutput(filepath, program)
+	inscope, outscope := getScope(program)
+	handleJSONOutput(filepath, program, inscope, outscope)
 }
 
+func getScope(program string) (map[string]int, map[string]int) {
+	// 1 = inscope wildcard
+	// 2 = inscope fqdn
+	inscope := make(map[string]int)
+	outscope := make(map[string]int)
+
+	var keys Keys
+	keys.Key = append(keys.Key, program)
+
+	b, err := json.Marshal(keys)
+	handleError(err)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", conf.CouchDB+"/_all_docs?include_docs=true", bytes.NewBuffer(b))
+	handleError(err)
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth(conf.Username, conf.Password)
+	resp, err := client.Do(req)
+	handleError(err)
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	handleError(err)
+
+	if resp.StatusCode != 200 {
+		fmt.Println("Something went wrong. Please check")
+		bodyBytes, err = ioutil.ReadAll(resp.Body)
+		handleError(err)
+		fmt.Println(string(bodyBytes))
+		os.Exit(1)
+	}
+	var scope Scopes
+	err = json.Unmarshal(bodyBytes, &scope)
+
+	for _, v := range scope.Rows {
+		for _, vv := range v.Doc.Inscope {
+			if strings.HasPrefix(vv, "*.") {
+				inscope[vv[1:]] = 1
+			} else {
+				inscope[vv] = 2
+			}
+		}
+		for _, vv := range v.Doc.Outscope {
+			outscope[vv] = 1
+		}
+	}
+
+	return inscope, outscope
+}
 func parseConfigFile(bbrfConfigFile string) {
 	if bbrfConfigFile == "~/.bbrf/config.json" {
 		home, err := os.UserHomeDir()
@@ -31,7 +80,7 @@ func parseConfigFile(bbrfConfigFile string) {
 	handleError(err)
 }
 
-func handleJSONOutput(filepath, program string) {
+func handleJSONOutput(filepath, program string, inscope, outscope map[string]int) {
 
 	var docs []Document
 	var obj Documents
@@ -53,12 +102,31 @@ func handleJSONOutput(filepath, program string) {
 		}
 		// fmt.Println(obj.Name, " ", obj.Addresses[0].Ip, obj.Sources)
 
-		sources := ""
-		for _, v := range obj.Sources {
-			sources += v
-			sources += ","
+		// Check if domain name is in scope
+		flag := 0
+		for i, _ := range inscope {
+			if strings.HasSuffix(obj.Name, i) {
+				flag = 1
+				break
+			}
 		}
-		sources = sources[:len(sources)-1]
+
+		if flag == 0 {
+			continue
+		}
+		// Check if particular domain name is out of scope
+		for i, _ := range outscope {
+			if obj.Name == i {
+				flag = 0
+			}
+		}
+
+		if flag == 0 {
+			continue
+		}
+
+		sources := sourcesToString(obj.Sources)
+
 		//fmt.Println(domain, sources)
 
 		var ips []string
@@ -67,21 +135,42 @@ func handleJSONOutput(filepath, program string) {
 		}
 
 		var doc Document
+
+		// underscore is reserved keyword in couchdb
+		if strings.HasPrefix(obj.Name, "_") {
+			obj.Name = "." + obj.Name
+		}
+
 		doc.Id = obj.Name
 		doc.Program = program
 		doc.Type = "domain"
 		doc.Ips = ips
 		doc.Source = sources
+		//fmt.Println(doc)
 		docs = append(docs, doc)
 
 		keyArr = append(keyArr, obj.Name)
 	}
 
+	//fmt.Println(docs)
 	obj.Docs = docs
 	addDataToBBRF(obj)
 
 	keys.Key = keyArr
-	getCurrentBBRFData(keys)
+	currentDocs := getCurrentBBRFData(keys)
+	//fmt.Println(currentDocs)
+	updateBBRFData(currentDocs, obj)
+
+}
+
+func sourcesToString(sources []string) string {
+	str := ""
+	for _, v := range sources {
+		str += v
+		str += ","
+	}
+	str = str[:len(str)-1]
+	return str
 }
 
 func addDataToBBRF(obj Documents) {
@@ -104,10 +193,107 @@ func addDataToBBRF(obj Documents) {
 	}
 }
 
-func updateBBRFData(obj Documents) {
+func mergeDocuments(currentDocs CurrentDocuments, docs Documents) CurrentDocuments {
 
+	// Quick mapping for better searching
+	mDocs := make(map[string]Document)
+	for _, v := range docs.Docs {
+		mDocs[v.Id] = v
+	}
+
+	// We only need to merge IP and sources field
+	var updatedCurrentDocs CurrentDocuments
+	for _, v := range currentDocs.Rows {
+		mmIP := make(map[string]bool)
+		for _, ip := range v.UpdateDocs.Ips {
+			mmIP[ip] = true
+		}
+
+		sources := strings.Split(v.UpdateDocs.Source, ",")
+		mmSource := make(map[string]bool)
+		for _, s := range sources {
+			mmSource[s] = true
+		}
+
+		if v.UpdateDocs.Id == "" {
+			continue
+		}
+		//fmt.Println(v.UpdateDocs.Id)
+		temp := mDocs[v.UpdateDocs.Id]
+		for _, vv := range temp.Ips {
+			if mmIP[vv] == false {
+				v.UpdateDocs.Ips = append(v.UpdateDocs.Ips, vv)
+				mmIP[vv] = true
+			}
+		}
+
+		tempSources := strings.Split(temp.Source, ",")
+
+		for _, vv := range tempSources {
+			if mmSource[vv] == false {
+				sources = append(sources, vv)
+				mmSource[vv] = true
+			}
+		}
+		v.UpdateDocs.Source = sourcesToString(sources)
+		updatedCurrentDocs.Rows = append(updatedCurrentDocs.Rows, v)
+	}
+	return updatedCurrentDocs
 }
 
-func getCurrentBBRFData(keys Keys) {
+func updateBBRFData(currentDocs CurrentDocuments, docs Documents) {
+	// Merge both documents object
+	updatedDocs := mergeDocuments(currentDocs, docs)
+	//fmt.Println(updatedDocs)
 
+	var obj BulkUpdate
+	for _, v := range updatedDocs.Rows {
+		obj.Docs = append(obj.Docs, v.UpdateDocs)
+	}
+
+	b, err := json.Marshal(obj)
+	handleError(err)
+	//fmt.Println(string(b))
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", conf.CouchDB+"/_bulk_docs", bytes.NewBuffer(b))
+	handleError(err)
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth(conf.Username, conf.Password)
+	resp, err := client.Do(req)
+	handleError(err)
+
+	if resp.StatusCode != 201 {
+		fmt.Println("Something went wrong. Please check")
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		handleError(err)
+		fmt.Println(string(bodyBytes))
+	}
+}
+
+func getCurrentBBRFData(keys Keys) CurrentDocuments {
+	b, err := json.Marshal(keys)
+	handleError(err)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", conf.CouchDB+"/_all_docs?include_docs=true", bytes.NewBuffer(b))
+	handleError(err)
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth(conf.Username, conf.Password)
+	resp, err := client.Do(req)
+	handleError(err)
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	handleError(err)
+
+	if resp.StatusCode != 200 {
+		fmt.Println("Something went wrong. Please check")
+		bodyBytes, err = ioutil.ReadAll(resp.Body)
+		handleError(err)
+		fmt.Println(string(bodyBytes))
+		os.Exit(1)
+	}
+	var currentDocs CurrentDocuments
+	err = json.Unmarshal(bodyBytes, &currentDocs)
+	return currentDocs
 }

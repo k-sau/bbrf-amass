@@ -1,6 +1,7 @@
 # bbrf-amass
 
-Parses amass json output and forward it to bbrf: domain:ip & sources
+Parses amass json output and forward it to bbrf: domain:ip with its sources. This also supports ipv6.
+Normally, I wasn't able to add domain:ip with amass sources from stdin. This solves that problem.
 
 ### Installation
 ```
