@@ -2,7 +2,7 @@ package core
 
 import "log"
 
-func handleError(err error) {
+func HandleError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}

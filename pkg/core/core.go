@@ -10,10 +10,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/k-sau/bbrf-amass/pkg/constants"
 )
 
-func Initialize(filepath, program, bbrfConfigFile string) {
-	parseConfigFile(bbrfConfigFile)
+func Initialize(filepath, program string) {
 	inscope, outscope := getScope(program)
 	handleJSONOutput(filepath, program, inscope, outscope)
 }
@@ -28,23 +29,23 @@ func getScope(program string) (map[string]int, map[string]int) {
 	keys.Key = append(keys.Key, program)
 
 	b, err := json.Marshal(keys)
-	handleError(err)
+	HandleError(err)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", conf.CouchDB+"/_all_docs?include_docs=true", bytes.NewBuffer(b))
-	handleError(err)
+	HandleError(err)
 	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(conf.Username, conf.Password)
 	resp, err := client.Do(req)
-	handleError(err)
+	HandleError(err)
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	handleError(err)
+	HandleError(err)
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Something went wrong. Please check")
 		bodyBytes, err = ioutil.ReadAll(resp.Body)
-		handleError(err)
+		HandleError(err)
 		fmt.Println(string(bodyBytes))
 		os.Exit(1)
 	}
@@ -66,18 +67,18 @@ func getScope(program string) (map[string]int, map[string]int) {
 
 	return inscope, outscope
 }
-func parseConfigFile(bbrfConfigFile string) {
+func ParseConfigFile(bbrfConfigFile string) {
 	if bbrfConfigFile == "~/.bbrf/config.json" {
 		home, err := os.UserHomeDir()
-		handleError(err)
+		HandleError(err)
 		bbrfConfigFile = home + "/.bbrf/config.json"
 	}
 	f, err := os.Open(bbrfConfigFile)
-	handleError(err)
+	HandleError(err)
 	defer f.Close()
 	byteValue, _ := ioutil.ReadAll(f)
 	err = json.Unmarshal(byteValue, &conf)
-	handleError(err)
+	HandleError(err)
 }
 
 func handleJSONOutput(filepath, program string, inscope, outscope map[string]int) {
@@ -88,7 +89,7 @@ func handleJSONOutput(filepath, program string, inscope, outscope map[string]int
 	var keyArr []string
 
 	f, err := os.Open(filepath)
-	handleError(err)
+	HandleError(err)
 	defer f.Close()
 	byteValue, _ := ioutil.ReadAll(f)
 
@@ -154,13 +155,12 @@ func handleJSONOutput(filepath, program string, inscope, outscope map[string]int
 
 	//fmt.Println(docs)
 	obj.Docs = docs
-	addDataToBBRF(obj)
+	AddDataToBBRF(obj)
 
 	keys.Key = keyArr
-	currentDocs := getCurrentBBRFData(keys)
+	currentDocs := GetCurrentBBRFData(keys, "domain")
 	//fmt.Println(currentDocs)
-	updateBBRFData(currentDocs, obj)
-
+	UpdateBBRFData(currentDocs, obj)
 }
 
 func sourcesToString(sources []string) string {
@@ -173,127 +173,181 @@ func sourcesToString(sources []string) string {
 	return str
 }
 
-func addDataToBBRF(obj Documents) {
+func AddDataToBBRF(obj interface{}) {
 	b, err := json.Marshal(obj)
-	handleError(err)
+	HandleError(err)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", conf.CouchDB+"/_bulk_docs", bytes.NewBuffer(b))
-	handleError(err)
+	HandleError(err)
 	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(conf.Username, conf.Password)
 	resp, err := client.Do(req)
-	handleError(err)
+	HandleError(err)
 
 	if resp.StatusCode != 201 {
 		fmt.Println("Something went wrong. Please check")
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		handleError(err)
+		HandleError(err)
 		fmt.Println(string(bodyBytes))
 	}
 }
 
-func mergeDocuments(currentDocs CurrentDocuments, docs Documents) CurrentDocuments {
+func mergeDocuments(currentDocs_ interface{}, data interface{}) interface{} {
 
-	// Quick mapping for better searching
-	mDocs := make(map[string]Document)
-	for _, v := range docs.Docs {
-		mDocs[v.Id] = v
-	}
-
-	// We only need to merge IP and sources field
-	var updatedCurrentDocs CurrentDocuments
-	for _, v := range currentDocs.Rows {
-		mmIP := make(map[string]bool)
-		for _, ip := range v.UpdateDocs.Ips {
-			mmIP[ip] = true
+	switch data.(type) {
+	case Documents:
+		currentDocs := currentDocs_.(CurrentDocuments)
+		// Domains merging
+		// Quick mapping for better searching
+		docs := data.(Documents)
+		mDocs := make(map[string]Document)
+		for _, v := range docs.Docs {
+			mDocs[v.Id] = v
 		}
 
-		sources := strings.Split(v.UpdateDocs.Source, ",")
-		mmSource := make(map[string]bool)
-		for _, s := range sources {
-			mmSource[s] = true
-		}
-
-		if v.UpdateDocs.Id == "" {
-			continue
-		}
-		//fmt.Println(v.UpdateDocs.Id)
-		temp := mDocs[v.UpdateDocs.Id]
-		for _, vv := range temp.Ips {
-			if mmIP[vv] == false {
-				v.UpdateDocs.Ips = append(v.UpdateDocs.Ips, vv)
-				mmIP[vv] = true
+		// We only need to merge IP and sources field
+		var updatedCurrentDocs CurrentDocuments
+		for _, v := range currentDocs.Rows {
+			mmIP := make(map[string]bool)
+			for _, ip := range v.UpdateDocs.Ips {
+				mmIP[ip] = true
 			}
-		}
 
-		tempSources := strings.Split(temp.Source, ",")
-
-		for _, vv := range tempSources {
-			if mmSource[vv] == false {
-				sources = append(sources, vv)
-				mmSource[vv] = true
+			sources := strings.Split(v.UpdateDocs.Source, ",")
+			mmSource := make(map[string]bool)
+			for _, s := range sources {
+				mmSource[s] = true
 			}
+
+			if v.UpdateDocs.Id == "" {
+				continue
+			}
+			//fmt.Println(v.UpdateDocs.Id)
+			temp := mDocs[v.UpdateDocs.Id]
+			for _, vv := range temp.Ips {
+				if mmIP[vv] == false {
+					v.UpdateDocs.Ips = append(v.UpdateDocs.Ips, vv)
+					mmIP[vv] = true
+				}
+			}
+
+			tempSources := strings.Split(temp.Source, ",")
+
+			for _, vv := range tempSources {
+				if mmSource[vv] == false {
+					sources = append(sources, vv)
+					mmSource[vv] = true
+				}
+			}
+			v.UpdateDocs.Source = sourcesToString(sources)
+			updatedCurrentDocs.Rows = append(updatedCurrentDocs.Rows, v)
 		}
-		v.UpdateDocs.Source = sourcesToString(sources)
-		updatedCurrentDocs.Rows = append(updatedCurrentDocs.Rows, v)
+		return updatedCurrentDocs
+
+	case constants.ServiceDocuments:
+		// Services merging
+		docs := data.(constants.ServiceDocuments)
+		// Quick mapping for better searching
+		mDocs := make(map[string]constants.ServiceDocument)
+		for _, v := range docs.Docs {
+			mDocs[v.Id] = v
+		}
+		currentDocs := currentDocs_.(constants.ServiceCurrentDocuments)
+
+		// We only need to update the service name
+		for _, v := range currentDocs.Rows {
+			v.UpdateDocs.Service = mDocs[v.UpdateDocs.Id].Service
+		}
+		return currentDocs
+
 	}
-	return updatedCurrentDocs
+	return 1
 }
 
-func updateBBRFData(currentDocs CurrentDocuments, docs Documents) {
+func UpdateBBRFData(currentDocs interface{}, docs interface{}) {
 	// Merge both documents object
-	updatedDocs := mergeDocuments(currentDocs, docs)
-	//fmt.Println(updatedDocs)
+	tmp := mergeDocuments(currentDocs, docs)
 
-	var obj BulkUpdate
-	for _, v := range updatedDocs.Rows {
-		obj.Docs = append(obj.Docs, v.UpdateDocs)
+	var b []byte
+	var err error
+	switch tmp.(type) {
+	case CurrentDocuments:
+		//fmt.Println(updatedDocs)
+		updatedDocs := tmp.(CurrentDocuments)
+		var obj BulkUpdate
+		for _, v := range updatedDocs.Rows {
+			obj.Docs = append(obj.Docs, v.UpdateDocs)
+		}
+
+		b, err = json.Marshal(obj)
+		HandleError(err)
+		//fmt.Println(string(b))
+
+	case constants.ServiceCurrentDocuments:
+		updatedDocs := tmp.(constants.ServiceCurrentDocuments)
+		var obj constants.ServiceBulkUpdate
+		for _, v := range updatedDocs.Rows {
+			obj.Docs = append(obj.Docs, v.UpdateDocs)
+		}
+		b, err = json.Marshal(obj)
+		HandleError(err)
+
+	case int:
+		fmt.Printf("CurrentDocuments returned with status 1 insted of object. Quiting")
+		os.Exit(1)
 	}
-
-	b, err := json.Marshal(obj)
-	handleError(err)
-	//fmt.Println(string(b))
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", conf.CouchDB+"/_bulk_docs", bytes.NewBuffer(b))
-	handleError(err)
+	HandleError(err)
 	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(conf.Username, conf.Password)
 	resp, err := client.Do(req)
-	handleError(err)
+	HandleError(err)
 
 	if resp.StatusCode != 201 {
 		fmt.Println("Something went wrong. Please check")
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		handleError(err)
+		HandleError(err)
 		fmt.Println(string(bodyBytes))
 	}
 }
 
-func getCurrentBBRFData(keys Keys) CurrentDocuments {
+func GetCurrentBBRFData(keys Keys, type_ string) interface{} {
 	b, err := json.Marshal(keys)
-	handleError(err)
+	HandleError(err)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", conf.CouchDB+"/_all_docs?include_docs=true", bytes.NewBuffer(b))
-	handleError(err)
+	HandleError(err)
 	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(conf.Username, conf.Password)
 	resp, err := client.Do(req)
-	handleError(err)
+	HandleError(err)
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	handleError(err)
+	HandleError(err)
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Something went wrong. Please check")
 		bodyBytes, err = ioutil.ReadAll(resp.Body)
-		handleError(err)
+		HandleError(err)
 		fmt.Println(string(bodyBytes))
 		os.Exit(1)
 	}
-	var currentDocs CurrentDocuments
-	err = json.Unmarshal(bodyBytes, &currentDocs)
-	return currentDocs
+
+	if type_ == "domain" {
+		var currentDocs CurrentDocuments
+		err = json.Unmarshal(bodyBytes, &currentDocs)
+		HandleError(err)
+		return currentDocs
+	} else if type_ == "service" {
+		var currentDocs constants.ServiceCurrentDocuments
+		err = json.Unmarshal(bodyBytes, &currentDocs)
+		HandleError(err)
+		return currentDocs
+	}
+
+	return 1
 }

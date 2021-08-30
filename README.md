@@ -17,6 +17,7 @@ GO111MODULE=on go get github.com/k-sau/bbrf-amass
   -p string
     	Program id. Required.
   -path string
-    	Full path to amass json output. Required.
-
+    	Full path to amass json output.
+  -service
+    	Takes input from stdin in format of ip:port:service-name. Supports ipv6
 ```
