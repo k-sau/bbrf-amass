@@ -13,7 +13,7 @@ func main() {
 	filePath := flag.String("path", "", "Full path to amass json output.")
 	program := flag.String("p", "", "Program id. Required.")
 	help := flag.Bool("h", false, "Prints available flags")
-	service := flag.Bool("service", false, "Takes input from stdin in format of ip:port:service-name. Supports ipv6")
+	service := flag.Bool("service", false, "Takes input from stdin in format of ip;port;service-name. Supports ipv6")
 	bbrfConfigFile := flag.String("bc", "~/.bbrf/config.json", "File path for bbrf config file. Default: ~/.bbrf/config.json")
 	flag.Parse()
 
