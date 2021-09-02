@@ -253,7 +253,6 @@ func mergeDocuments(currentDocs_ interface{}, data interface{}) interface{} {
 		for _, v := range docs.Docs {
 			mDocs[v.Id] = v
 		}
-		fmt.Println(mDocs)
 		currentDocs := currentDocs_.(constants.ServiceCurrentDocuments)
 
 		// We only need to update the service name
