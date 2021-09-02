@@ -5,7 +5,7 @@ Normally, I wasn't able to add domain:ip with amass sources from stdin. This sol
 
 ### Installation
 ```
-GO111MODULE=on go get github.com/k-sau/bbrf-amass
+GO111MODULE=on go install github.com/k-sau/bbrf-amass@latest
 ```
 
 ### Usage
