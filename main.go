@@ -15,6 +15,7 @@ func main() {
 	help := flag.Bool("h", false, "Prints available flags")
 	service := flag.Bool("service", false, "Takes input from stdin in format of ip;port;service-name. Supports ipv6")
 	bbrfConfigFile := flag.String("bc", "~/.bbrf/config.json", "File path for bbrf config file. Default: ~/.bbrf/config.json")
+	wildcard := flag.Bool("wildcard", false, "Adds everything excepts domains which explicitly mentioned in out of scope.")
 	flag.Parse()
 
 	if *help {
@@ -46,9 +47,9 @@ func main() {
 	core.ParseConfigFile(*bbrfConfigFile)
 
 	if *service {
-		bbrf.Initialize("service", *program)
+		bbrf.Initialize("service", *program, *wildcard)
 	}
 	if *filePath != "" {
-		core.Initialize(*filePath, *program)
+		core.Initialize(*filePath, *program, *wildcard)
 	}
 }

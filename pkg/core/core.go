@@ -14,9 +14,9 @@ import (
 	"github.com/k-sau/bbrf-amass/pkg/constants"
 )
 
-func Initialize(filepath, program string) {
+func Initialize(filepath, program string, wildcard bool) {
 	inscope, outscope := getScope(program)
-	handleJSONOutput(filepath, program, inscope, outscope)
+	handleJSONOutput(filepath, program, inscope, outscope, wildcard)
 }
 
 func getScope(program string) (map[string]int, map[string]int) {
@@ -81,7 +81,7 @@ func ParseConfigFile(bbrfConfigFile string) {
 	HandleError(err)
 }
 
-func handleJSONOutput(filepath, program string, inscope, outscope map[string]int) {
+func handleJSONOutput(filepath, program string, inscope, outscope map[string]int, wildcard bool) {
 
 	var docs []Document
 	var obj Documents
@@ -103,19 +103,29 @@ func handleJSONOutput(filepath, program string, inscope, outscope map[string]int
 		}
 		// fmt.Println(obj.Name, " ", obj.Addresses[0].Ip, obj.Sources)
 
-		// Check if domain name is in scope
 		flag := 0
-		for i, _ := range inscope {
-			if strings.HasSuffix(obj.Name, i) {
-				flag = 1
-				break
+		// Skip inscope check if wildcard flag is provided
+		if !wildcard {
+			for i, _ := range inscope {
+				if strings.HasSuffix(obj.Name, i) {
+					flag = 1
+					break
+				}
 			}
+		} else {
+			flag = 1
 		}
+		// Check if domain name is in scope
+		// As soon as we get to know that domain is inscope
+		// then we breakout the inscope obj loop
 
 		if flag == 0 {
 			continue
 		}
 		// Check if particular domain name is out of scope
+		// Same logic as in inscope.
+		// After checking if it's inscope then we double verify if it's
+		// not expilicitly mentioned in outscope
 		for i, _ := range outscope {
 			if obj.Name == i {
 				flag = 0
@@ -164,12 +174,7 @@ func handleJSONOutput(filepath, program string, inscope, outscope map[string]int
 }
 
 func sourcesToString(sources []string) string {
-	str := ""
-	for _, v := range sources {
-		str += v
-		str += ","
-	}
-	str = str[:len(str)-1]
+	str := strings.Join(sources, ",")
 	return str
 }
 
