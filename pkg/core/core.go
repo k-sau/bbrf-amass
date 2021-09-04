@@ -106,8 +106,11 @@ func handleJSONOutput(filepath, program string, inscope, outscope map[string]int
 		flag := 0
 		// Skip inscope check if wildcard flag is provided
 		if !wildcard {
-			for i, _ := range inscope {
-				if strings.HasSuffix(obj.Name, i) {
+			for i, v := range inscope {
+				if strings.HasSuffix(obj.Name, i) && v == 1 {
+					flag = 1
+					break
+				} else if obj.Name == i && v == 2 {
 					flag = 1
 					break
 				}
