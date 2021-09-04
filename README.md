@@ -8,6 +8,9 @@ Normally, I wasn't able to add domain:ip with amass sources from stdin. This sol
 GO111MODULE=on go install github.com/k-sau/bbrf-amass@latest
 ```
 
+### Disclaimer
+Make sure to manually filter the bbrf-client results if you used *-wildcard* flag of this tool since it will add every subdomains to bbrf-server without checking in scope domains.
+
 ### Usage
 
 ```
