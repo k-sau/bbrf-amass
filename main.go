@@ -47,7 +47,7 @@ func main() {
 	core.ParseConfigFile(*bbrfConfigFile)
 
 	if *service {
-		bbrf.Initialize("service", *program, *wildcard)
+		bbrf.Initialize("service", *program)
 	}
 	if *filePath != "" {
 		core.Initialize(*filePath, *program, *wildcard)

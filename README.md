@@ -12,12 +12,14 @@ GO111MODULE=on go install github.com/k-sau/bbrf-amass@latest
 
 ```
   -bc string
-    	File path for bbrf config file. Default: ~/.bbrf/config.json (default "~/.bbrf/config.json")
-  -h	Prints available flags
+        File path for bbrf config file. Default: ~/.bbrf/config.json (default "~/.bbrf/config.json")
+  -h    Prints available flags
   -p string
-    	Program id. Required.
+        Program id. Required.
   -path string
-    	Full path to amass json output.
+        Full path to amass json output.
   -service
-    	Takes input from stdin in format of ip;port;service-name. Supports ipv6
+        Takes input from stdin in format of ip;port;service-name. Supports ipv6
+  -wildcard
+        Adds everything excepts domains which explicitly mentioned in out of scope.
 ```
