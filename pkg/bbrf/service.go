@@ -12,13 +12,13 @@ import (
 func serviceInitialize(program string) {
 	var obj constants.ServiceDocuments
 	var doc constants.ServiceDocument
-	doc.Tags = make(map[string]string)
 	var keys core.Keys
 	var keyArr []string
 
 	// read the lines, append and output them if they're new
 	sc := bufio.NewScanner(os.Stdin)
 	for sc.Scan() {
+		doc.Tags = make(map[string]string)
 		service := sc.Text()
 		// Uses: https://github.com/k-sau/nmap-parse-output/blob/master/nmap-parse-output-xslt/bbrf-service.xslt
 		// for parsing nmap xml output
