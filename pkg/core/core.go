@@ -184,7 +184,6 @@ func sourcesToString(sources []string) string {
 func AddDataToBBRF(obj interface{}) {
 	b, err := json.Marshal(obj)
 	HandleError(err)
-	fmt.Println(string(b))
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", conf.CouchDB+"/_bulk_docs", bytes.NewBuffer(b))
 	HandleError(err)
