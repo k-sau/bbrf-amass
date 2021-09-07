@@ -12,6 +12,7 @@ import (
 func serviceInitialize(program string) {
 	var obj constants.ServiceDocuments
 	var doc constants.ServiceDocument
+	doc.Tags = make(map[string]string)
 	var keys core.Keys
 	var keyArr []string
 
@@ -30,6 +31,7 @@ func serviceInitialize(program string) {
 		doc.Service = ""
 		if len(temp) == 3 {
 			doc.Service = temp[2]
+			doc.Tags[temp[2]] = "true"
 		}
 		obj.Docs = append(obj.Docs, doc)
 		keyArr = append(keyArr, doc.Id)

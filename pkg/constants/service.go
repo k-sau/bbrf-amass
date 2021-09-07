@@ -5,12 +5,13 @@ type ServiceDocuments struct {
 }
 
 type ServiceDocument struct {
-	Id      string `json:"_id"`
-	Program string `json:"program"`
-	Type    string `json:"type"`
-	Ip      string `json:"ip"`
-	Port    string `json:"port"`
-	Service string `json:"service"`
+	Id      string            `json:"_id"`
+	Program string            `json:"program"`
+	Type    string            `json:"type"`
+	Ip      string            `json:"ip"`
+	Port    string            `json:"port"`
+	Service string            `json:"service"`
+	Tags    map[string]string `json:"tags"`
 }
 
 type ServiceUpdateDocuments struct {
@@ -22,13 +23,14 @@ type ServiceBulkUpdate struct {
 }
 
 type ServiceUpdateDocument struct {
-	Id      string `json:"_id"`
-	Rev     string `json:"_rev"`
-	Ip      string `json:"ip"`
-	Port    string `json:"port"`
-	Service string `json:"service"`
-	Program string `json:"program"`
-	Type    string `json:"type"`
+	Id      string            `json:"_id"`
+	Rev     string            `json:"_rev"`
+	Ip      string            `json:"ip"`
+	Port    string            `json:"port"`
+	Service string            `json:"service"`
+	Program string            `json:"program"`
+	Type    string            `json:"type"`
+	Tags    map[string]string `json:"tags"`
 }
 
 type ServiceCurrentDocuments struct {
