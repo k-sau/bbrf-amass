@@ -28,7 +28,6 @@ func serviceInitialize(program string) {
 		doc.Type = "service"
 		doc.Ip = temp[0]
 		doc.Port = temp[1]
-		doc.Service = ""
 		if len(temp) == 3 {
 			doc.Service = temp[2]
 			doc.Tags[temp[2]] = "true"

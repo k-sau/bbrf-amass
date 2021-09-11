@@ -265,11 +265,9 @@ func mergeDocuments(currentDocs_ interface{}, data interface{}) interface{} {
 		// We only need to update the service name
 		var updatedCurrentDocs constants.ServiceCurrentDocuments
 		for _, v := range currentDocs.Rows {
-			if v.UpdateDocs.Service != mDocs[v.UpdateDocs.Id].Service {
-				// Updating <service-name> tag if service name gets changed
-				v.UpdateDocs.Tags = make(map[string]string)
-				v.UpdateDocs.Tags[mDocs[v.UpdateDocs.Id].Service] = "true"
-			}
+			// Updating <service-name> tag if service name gets changed
+			v.UpdateDocs.Tags = make(map[string]string)
+			v.UpdateDocs.Tags[mDocs[v.UpdateDocs.Id].Service] = "true"
 			v.UpdateDocs.Service = mDocs[v.UpdateDocs.Id].Service
 			updatedCurrentDocs.Rows = append(updatedCurrentDocs.Rows, v)
 		}
