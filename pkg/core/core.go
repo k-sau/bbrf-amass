@@ -266,8 +266,19 @@ func mergeDocuments(currentDocs_ interface{}, data interface{}) interface{} {
 		var updatedCurrentDocs constants.ServiceCurrentDocuments
 		for _, v := range currentDocs.Rows {
 			// Updating <service-name> tag if service name gets changed
-			v.UpdateDocs.Tags = make(map[string]string)
-			v.UpdateDocs.Tags[mDocs[v.UpdateDocs.Id].Service] = "true"
+			//v.UpdateDocs.Tags = make(map[string]string)
+
+			// Ignore if empty service
+			if mDocs[v.UpdateDocs.Id].Service != "" {
+				// Delete every tags other than wihch starts from masscan-<program_name>
+				// Because in Service document only two tags is rquired, i.e tools and service
+				for key, _ := range v.UpdateDocs.Tags {
+					if !strings.HasPrefix(key, "tool") {
+						delete(v.UpdateDocs.Tags, key)
+					}
+				}
+				v.UpdateDocs.Tags[mDocs[v.UpdateDocs.Id].Service] = "true"
+			}
 			v.UpdateDocs.Service = mDocs[v.UpdateDocs.Id].Service
 			updatedCurrentDocs.Rows = append(updatedCurrentDocs.Rows, v)
 		}

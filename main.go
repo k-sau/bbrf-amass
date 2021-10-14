@@ -48,8 +48,7 @@ func main() {
 
 	if *service {
 		bbrf.Initialize("service", *program)
-	}
-	if *filePath != "" {
+	} else if *filePath != "" {
 		core.Initialize(*filePath, *program, *wildcard)
 	}
 }

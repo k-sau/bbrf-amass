@@ -31,6 +31,11 @@ func serviceInitialize(program string) {
 		if len(temp) == 3 {
 			doc.Service = temp[2]
 			doc.Tags[temp[2]] = "true"
+		} else {
+			// Fix: By default tag param is set to null and hence bbrf fails to update tag with error:
+			// [Error] The updated property tags doesn't have the right type. Cannot update 127.0.0.1:443
+			// [ERROR] '_id'
+			doc.Tags = make(map[string]string)
 		}
 		obj.Docs = append(obj.Docs, doc)
 		keyArr = append(keyArr, doc.Id)
