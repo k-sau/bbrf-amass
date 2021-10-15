@@ -54,10 +54,10 @@ func main() {
 	core.ParseConfigFile(*bbrfConfigFile)
 
 	if *service {
-		bbrf.Initialize("service", *program)
+		bbrf.Initialize("service", *program, *wildcard)
 	} else if *filePath != "" {
 		core.Initialize(*filePath, *program, *wildcard)
 	} else if *unresolved {
-		bbrf.Initialize("unresolved", *program)
+		bbrf.Initialize("unresolved", *program, *wildcard)
 	}
 }

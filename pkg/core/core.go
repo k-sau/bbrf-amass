@@ -15,11 +15,11 @@ import (
 )
 
 func Initialize(filepath, program string, wildcard bool) {
-	inscope, outscope := getScope(program)
+	inscope, outscope := GetScope(program)
 	handleJSONOutput(filepath, program, inscope, outscope, wildcard)
 }
 
-func getScope(program string) (map[string]int, map[string]int) {
+func GetScope(program string) (map[string]int, map[string]int) {
 	// 1 = inscope wildcard
 	// 2 = inscope fqdn
 	inscope := make(map[string]int)
@@ -104,37 +104,17 @@ func handleJSONOutput(filepath, program string, inscope, outscope map[string]int
 		// fmt.Println(obj.Name, " ", obj.Addresses[0].Ip, obj.Sources)
 
 		flag := 0
+
 		// Skip inscope check if wildcard flag is provided
 		if !wildcard {
-			for i, v := range inscope {
-				if strings.HasSuffix(obj.Name, i) && v == 1 {
-					flag = 1
-					break
-				} else if obj.Name == i && v == 2 {
-					flag = 1
-					break
-				}
+			if CheckScope(obj.Name, inscope, outscope) {
+				flag = 1
 			}
 		} else {
 			flag = 1
 		}
-		// Check if domain name is in scope
-		// As soon as we get to know that domain is inscope
-		// then we breakout the inscope obj loop
 
-		if flag == 0 {
-			continue
-		}
-		// Check if particular domain name is out of scope
-		// Same logic as in inscope.
-		// After checking if it's inscope then we double verify if it's
-		// not expilicitly mentioned in outscope
-		for i, _ := range outscope {
-			if obj.Name == i {
-				flag = 0
-			}
-		}
-
+		// If not in scope, continue.
 		if flag == 0 {
 			continue
 		}
@@ -198,6 +178,28 @@ func AddDataToBBRF(obj interface{}) {
 		HandleError(err)
 		fmt.Println(string(bodyBytes))
 	}
+}
+
+func CheckScope(domainName string, inscope, outscope map[string]int) bool {
+	// Check if particular domain name is out of scope
+	for i, _ := range outscope {
+		if domainName == i {
+			return false
+		}
+	}
+
+	// Check if domain name is in scope
+	// As soon as we get to know that domain is inscope
+	// then we breakout the inscope obj loop
+	for i, v := range inscope {
+		if strings.HasSuffix(domainName, i) && v == 1 {
+			return true
+		} else if domainName == i && v == 2 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func mergeDocuments(currentDocs_ interface{}, data interface{}) interface{} {
