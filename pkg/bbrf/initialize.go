@@ -5,5 +5,7 @@ func Initialize(type_, program string) {
 		serviceInitialize(program)
 	} else if type_ == "urls" {
 		urlsInitialize(program)
+	} else if type_ == "unresolved" {
+		unresolvedInitialize(program)
 	}
 }
