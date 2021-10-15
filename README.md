@@ -15,14 +15,16 @@ Make sure to manually filter the bbrf-client results if you used *-wildcard* fla
 
 ```
   -bc string
-        File path for bbrf config file. Default: ~/.bbrf/config.json (default "~/.bbrf/config.json")
-  -h    Prints available flags
+    	File path for bbrf config file. Default: ~/.bbrf/config.json (default "~/.bbrf/config.json")
+  -h	Prints available flags
   -p string
-        Program id. Required.
+    	Program id. Required.
   -path string
-        Full path to amass json output.
+    	Full path to amass json output.
   -service
-        Takes input from stdin in format of ip;port;service-name. Supports ipv6
+    	Takes input from stdin in format of ip;port;service-name. Supports ipv6
+  -unresolved
+    	Takes domain names from stdin and adds it.
   -wildcard
-        Adds everything excepts domains which explicitly mentioned in out of scope.
+    	Adds everything excepts domains which explicitly mentioned in out of scope.
 ```
